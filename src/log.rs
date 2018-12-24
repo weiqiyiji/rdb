@@ -1,6 +1,7 @@
 use failure::Error;
 use std::fs::File;
 use std::io::Write;
+use crc::crc32;
 
 enum RecordType {
     // Zero is reserved for preallocated files
@@ -80,7 +81,9 @@ impl Writer {
 
     fn emit_physical_record(&mut self, record_type: RecordType, record: &[u8]) -> Result<(), Error> {
         assert!(record.len() <= 0xffff);  // Must fit in two bytes
-        
+
+        let mut digest = crc32::Digest::new_with_initial(crc32::IEEE, record_type as u32);
+        digest.write(record);
 
         panic!("")
     }
