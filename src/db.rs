@@ -1,5 +1,6 @@
 use crate::errors::*;
 use failure::Error;
+use std::fs::File;
 
 pub struct Key(Vec<u8>);
 pub struct Value(Vec<u8>);
@@ -19,9 +20,10 @@ impl DB {
         // TODO:
         //   1. Read snapshot
         //   2. Replay WAL
+        //   3. Create necessary files
         return Ok(DB {
             name: name.to_owned(),
-            options: options,
+            options,
         });
     }
 
