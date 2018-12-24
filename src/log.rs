@@ -1,7 +1,7 @@
 use failure::Error;
 use std::fs::File;
 use std::io::Write;
-use crc::crc32;
+use crc::{crc32, Hasher32};
 
 enum RecordType {
     // Zero is reserved for preallocated files
@@ -11,6 +11,8 @@ enum RecordType {
     Middle = 3,
     Last = 4,
 }
+
+const MASK_DELTA: u32 = 0xa282ead8;
 
 const BLOCK_SIZE: usize = 32768;
 
@@ -84,7 +86,13 @@ impl Writer {
 
         let mut digest = crc32::Digest::new_with_initial(crc32::IEEE, record_type as u32);
         digest.write(record);
+        let crc = Self::mask_crc(digest.sum32());
 
         panic!("")
+    }
+
+    fn mask_crc(crc: u32) -> u32 {
+        // Rotate right by 15 bits and add a constant.
+        return ((crc >> 15) | (crc << 17)) + MASK_DELTA;
     }
 }
