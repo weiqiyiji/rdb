@@ -1,4 +1,4 @@
 mod db;
-mod log;
+mod journal;
 mod errors;
-mod encoding;
+mod coding;

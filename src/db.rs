@@ -21,10 +21,10 @@ impl DB {
         //   1. Read snapshot
         //   2. Replay WAL
         //   3. Create necessary files
-        return Ok(DB {
+        Ok(DB {
             name: name.to_owned(),
             options,
-        });
+        })
     }
 
     pub fn write(&mut self, options: &WriteOptions, batch: Vec<Operation>) -> Result<(), Error> {
@@ -32,11 +32,11 @@ impl DB {
     }
 
     pub fn put(&mut self, options: &WriteOptions, key: Key, value: Value) -> Result<(), Error> {
-        return self.write(options, vec![Operation::Put(key, value)]);
+        self.write(options, vec![Operation::Put(key, value)])
     }
 
     pub fn delete(&mut self, options: &WriteOptions, key: Key) -> Result<(), Error> {
-        return self.write(options, vec![Operation::Delete(key)]);
+        self.write(options, vec![Operation::Delete(key)])
     }
 
     pub fn get(&self, options: &ReadOptions, key: Key) -> Result<(), Error> {
@@ -89,7 +89,7 @@ pub struct DBOptions {
 
 impl Default for DBOptions {
     fn default() -> DBOptions {
-        return DBOptions {
+        DBOptions {
             create_if_missing: false,
             error_if_exists: false,
             max_file_size: 2<<20,
