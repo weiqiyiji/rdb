@@ -1,4 +1,4 @@
-use crate::errors::FileError;
+use crate::errors::{self, FileError};
 use crate::coding;
 use failure::Error;
 use std::fs::File;
@@ -141,19 +141,22 @@ impl Reader {
     }
 
     pub fn read_record(&mut self) -> Result<Vec<u8>, Error> {
+        let mut buf: Vec<u8> = Vec::new();
         loop {
             if self.block_offset == 0 {
                 self.reader.read(&mut self.current_block)?;
 
                 // Ensure read the whole block
-                assert_eq!(self.current_block.len(), BLOCK_SIZE);
+                if self.current_block.len() != BLOCK_SIZE {
+                    return Err(errors::error_corrupted_block())
+                }
             }
 
             let header = &self.current_block[self.block_offset..self.block_offset+HEADER_SIZE];
             let mut cursor = Cursor::new(header);
             let expected_crc = cursor.read_u32::<LittleEndian>()?;
             let record_length = cursor.read_u16::<LittleEndian>()? as usize;
-            let record_type = cursor.read_u8()?;
+            let record_type = cursor.read_u8()? as RecordType;
 
             let record = &self.current_block[self.block_offset+HEADER_SIZE..self.block_offset+HEADER_SIZE+record_length];
 
@@ -163,10 +166,25 @@ impl Reader {
             let actual_crc = digest.sum32();
 
             if actual_crc != expected_crc {
-                let e = Error::from(FileError::Corrupted("invalid checksum".to_owned()));
-                return Err(e);
+                return Err(errors::error_invalid_checksum());
             }
+
+            match record_type {
+                RecordType::First | RecordType::Middle => {
+                    buf.extend_from_slice(record);
+                    self.block_offset = 0;
+                },
+                RecordType::Last | RecordType::Full => {
+                    buf.extend_from_slice(record);
+                    self.block_offset += HEADER_SIZE+record_length;
+                    break;
+                }
+            }
+
+            assert!(self.block_offset <= BLOCK_SIZE);
         }
+
+        Ok(buf)
     }
 
     fn unmask_crc(crc: u32) -> u32 {
